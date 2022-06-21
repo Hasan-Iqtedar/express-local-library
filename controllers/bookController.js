@@ -29,9 +29,6 @@ exports.index = function (req, res, next) {
       },
     },
     function (err, results) {
-      if (err) {
-        console.log(err);
-      }
       res.render('index', {
         title: 'Local Library Home',
         error: err,
@@ -42,7 +39,15 @@ exports.index = function (req, res, next) {
 };
 
 exports.book_list = function (req, res, next) {
-  res.send('NOT IMPLEMENTED YET: book List');
+  Book.find({}, 'title author')
+    .sort({ title: 1 })
+    .populate('author')
+    .exec(function (err, results) {
+      if (err) {
+        return next(err);
+      }
+      res.render('book_list', { title: 'Books List', book_list: results });
+    });
 };
 
 exports.book_detail = function (req, res, next) {
