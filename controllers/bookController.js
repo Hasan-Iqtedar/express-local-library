@@ -1,7 +1,8 @@
-var Book = require('../models/book');
 var Author = require('../models/author');
-var Genre = require('../models/genre');
+var { body, validationResult } = require('express-validator');
+var Book = require('../models/book');
 var BookInstance = require('../models/bookInstance');
+var Genre = require('../models/genre');
 
 var async = require('async');
 
@@ -84,12 +85,104 @@ exports.book_detail = function (req, res, next) {
 };
 
 exports.book_create_get = function (req, res, next) {
-  res.send('NOT IMPLEMENTED YET: Book Create Get');
+  async.parallel(
+    {
+      authors: function (callback) {
+        Author.find({}).sort({ first_name: 1 }).exec(callback);
+      },
+      genres: function (callback) {
+        Genre.find({}).sort({ name: 1 }).exec(callback);
+      },
+    },
+    function (err, results) {
+      if (err) {
+        return next(err);
+      }
+      res.render('book_form', {
+        title: 'Create Book',
+        authors: results.authors,
+        genres: results.genres,
+      });
+    }
+  );
 };
 
-exports.book_create_post = function (req, res, next) {
-  res.send('NOT IMPLEMENTED YET: Book Create Post');
-};
+exports.book_create_post = [
+  (req, res, next) => {
+    if (!req.body.genre instanceof Array) {
+      if (typeof req.body.genre === undefined) {
+        req.body.genre = [];
+      } else {
+        req.body.genre = new Array(req.body.genre);
+      }
+    }
+
+    next();
+  },
+
+  body('title', 'Please provide book title')
+    .trim()
+    .isLength({ min: 1 })
+    .escape(),
+  body('author', 'Please provide book Author')
+    .trim()
+    .isLength({ min: 1 })
+    .escape(),
+  body('summary', 'Please provide book summary')
+    .trim()
+    .isLength({ min: 1 })
+    .escape(),
+  body('isbn', 'Please provide book ISBN').trim().isLength({ min: 1 }).escape(),
+  body('genre.*').escape(),
+
+  (req, res, next) => {
+    const errors = validationResult(req);
+
+    var book = new Book({
+      title: req.body.title,
+      author: req.body.author,
+      summary: req.body.summary,
+      isbn: req.body.isbn,
+      genre: req.body.genre,
+    });
+
+    if (!errors.isEmpty()) {
+      async.parallel(
+        {
+          authors: function (callback) {
+            Author.find({}).sort({ first_name: 1 }).exec(callback);
+          },
+          genres: function (callback) {
+            Genre.find({}).sort({ name: 1 }).exec(callback);
+          },
+        },
+        function (err, results) {
+          if (err) {
+            return next(err);
+          }
+          for (let i = 0; i < results.genres.length; i++) {
+            if (book.genre.indexOf(results.genres[i]) > -1) {
+              results.genres[i].checked = 'true';
+            }
+          }
+          res.render('book_form', {
+            title: 'Create Book',
+            authors: results.authors,
+            genres: results.genres,
+          });
+        }
+      );
+      return;
+    } else {
+      book.save(function (err) {
+        if (err) {
+          return next(err);
+        }
+        res.redirect(book.url);
+      });
+    }
+  },
+];
 
 exports.book_delete_get = function (req, res, next) {
   res.send('NOT IMPLEMENTED YET: Book Delete Get');
