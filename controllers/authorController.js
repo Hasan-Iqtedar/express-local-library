@@ -1,4 +1,5 @@
 var Author = require('../models/author');
+var { body, validationResult } = require('express-validator');
 var async = require('async');
 var Book = require('../models/book');
 
@@ -44,12 +45,58 @@ exports.author_detail = function (req, res, next) {
 };
 
 exports.author_create_get = function (req, res, next) {
-  res.send('NOT IMPLEMENTED YET: Author Create Get');
+  res.render('author_form', { title: 'Create Author' });
 };
 
-exports.author_create_post = function (req, res, next) {
-  res.send('NOT IMPLEMENTED YET: Author Create Post');
-};
+exports.author_create_post = [
+  body('first_name')
+    .trim()
+    .isLength({ min: 1 })
+    .escape()
+    .withMessage('First name must be specified')
+    .isAlphanumeric()
+    .withMessage('First name has non-alphanumeric characters'),
+  body('family_name')
+    .trim()
+    .isLength({ min: 1 })
+    .escape()
+    .withMessage('Family name must be specified')
+    .isAlphanumeric()
+    .withMessage('Family name has non-alphanumeric characters'),
+  body('date_of_birth', 'Invalid date of birth')
+    .optional({ checkFalsy: true })
+    .isISO8601().toDate(),
+  body('date_of_death', 'Invalid date of birth')
+    .optional({ checkFalsy: true })
+    .isISO8601().toDate(),
+
+  (req, res, next) => {
+    var errors = validationResult(req);
+
+    var author = new Author({
+      first_name: req.body.first_name,
+      family_name: req.body.family_name,
+      date_of_birth: req.body.date_of_birth,
+      date_of_death: req.body.date_of_death,
+    });
+
+    if (!errors.isEmpty()) {
+      res.render('author_form', {
+        title: 'Create Author',
+        author: author,
+        errors: errors.array(),
+      });
+      return;
+    }
+
+    author.save(function (err) {
+      if (err) {
+        return next(err);
+      }
+      res.redirect(author.url);
+    });
+  },
+];
 
 exports.author_delete_get = function (req, res, next) {
   res.send('NOT IMPLEMENTED YET: Author Delete Get');
