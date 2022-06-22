@@ -14,8 +14,26 @@ exports.bookInstance_list = function (req, res, next) {
     });
 };
 
+// Display detail page for a specific BookInstance.
 exports.bookInstance_detail = function (req, res, next) {
-  res.send('NOT IMPLEMENTED YET: BookInstance Detail ' + req.params.id);
+  BookInstance.findById(req.params.id)
+    .populate('book')
+    .exec(function (err, bookinstance) {
+      if (err) {
+        return next(err);
+      }
+      if (bookinstance == null) {
+        // No results.
+        var err = new Error('Book copy not found');
+        err.status = 404;
+        return next(err);
+      }
+      // Successful, so render.
+      res.render('bookInstance_detail', {
+        title: 'Copy: ' + bookinstance.book.title,
+        bookinstance: bookinstance,
+      });
+    });
 };
 
 exports.bookInstance_create_get = function (req, res, next) {
