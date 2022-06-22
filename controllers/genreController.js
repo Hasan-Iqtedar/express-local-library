@@ -1,4 +1,5 @@
 var async = require('async');
+var { body, validationResult } = require('express-validator');
 var Book = require('../models/book');
 var Genre = require('../models/genre');
 
@@ -37,12 +38,43 @@ exports.genre_detail = function (req, res, next) {
 };
 
 exports.genre_create_get = function (req, res, next) {
-  res.send('NOT IMPLEMENTED YET: Genre Create Get');
+  res.render('genre_form', { title: 'Create Genre' });
 };
 
-exports.genre_create_post = function (req, res, next) {
-  res.send('NOT IMPLEMENTED YET: Genre Create Post');
-};
+exports.genre_create_post = [
+  body('name', 'Genre name required').trim().isLength({ min: 1 }).escape(),
+  (req, res, next) => {
+    const errors = validationResult(req);
+
+    var genre = new Genre({ name: req.body.name });
+
+    if (!errors.isEmpty()) {
+      res.render('genre_form', {
+        title: 'Create Genre',
+        genre: genre,
+        errors: errors.array(),
+      });
+      return;
+    }
+
+    //Checking if genre already exists.
+    Genre.findOne({ name: genre.name }).exec(function (err, result) {
+      if (err) {
+        return next(err);
+      }
+      if (result) {
+        res.redirect(result.url);
+      } else {
+        genre.save(function (err) {
+          if (err) {
+            return next(err);
+          }
+          res.redirect(genre.url);
+        });
+      }
+    });
+  },
+];
 
 exports.genre_delete_get = function (req, res, next) {
   res.send('NOT IMPLEMENTED YET: Genre Delete Get');
