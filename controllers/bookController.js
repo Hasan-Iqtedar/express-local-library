@@ -145,7 +145,7 @@ exports.book_create_post = [
       isbn: req.body.isbn,
       genre: req.body.genre,
     });
-
+    console.log(book.genre);
     if (!errors.isEmpty()) {
       async.parallel(
         {
@@ -161,7 +161,7 @@ exports.book_create_post = [
             return next(err);
           }
           for (let i = 0; i < results.genres.length; i++) {
-            if (book.genre.indexOf(results.genres[i]) > -1) {
+            if (book.genre.indexOf(results.genres[i]._id) > -1) {
               results.genres[i].checked = 'true';
             }
           }
@@ -169,6 +169,8 @@ exports.book_create_post = [
             title: 'Create Book',
             authors: results.authors,
             genres: results.genres,
+            book: book,
+            errors: errors.array(),
           });
         }
       );
@@ -193,9 +195,135 @@ exports.book_delete_post = function (req, res, next) {
 };
 
 exports.book_update_get = function (req, res, next) {
-  res.send('NOT IMPLEMENTED YET: Book Update Get');
+  async.parallel(
+    {
+      book: function (callback) {
+        Book.findById(req.params.id)
+          .populate('author')
+          .populate('genre')
+          .exec(callback);
+      },
+      authors: function (callback) {
+        Author.find({}).sort({ title: 1 }).exec(callback);
+      },
+      genres: function (callback) {
+        Genre.find({}).sort({ name: 1 }).exec(callback);
+      },
+    },
+    function (err, results) {
+      if (err) {
+        return next(err);
+      }
+      if (results.book == null) {
+        var error = new Error('Book not found');
+        error.status = 404;
+        return next(error);
+      }
+      for (
+        var i = 0;
+        i < results.genres.length;
+        i++
+      ) {
+        for (
+          var j = 0;
+          j < results.book.genre.length;
+          j++
+        ) {
+          if (
+            results.genres[i]._id.toString() ===
+            results.book.genre[j]._id.toString()
+          ) {
+            results.genres[i].checked = 'true';
+          }
+        }
+      }
+      res.render('book_form', {
+        title: 'Update Book',
+        authors: results.authors,
+        genres: results.genres,
+        book: results.book,
+      });
+    }
+  );
 };
 
-exports.book_update_post = function (req, res, next) {
-  res.send('NOT IMPLEMENTED YET: Book Update Post');
-};
+exports.book_update_post = [
+  (req, res, next) => {
+    if (!req.body.genre instanceof Array) {
+      if (req.body.genre === undefined) {
+        req.body.genre = [];
+      } else {
+        req.body.genre = new Array(req.body.genre);
+      }
+    }
+    next();
+  },
+
+  body('title', 'Title must be provided').trim().isLength({ min: 1 }).escape(),
+  body('author', 'Author must not be empty.')
+    .trim()
+    .isLength({ min: 1 })
+    .escape(),
+  body('summary', 'Summary must not be empty.')
+    .trim()
+    .isLength({ min: 1 })
+    .escape(),
+  body('isbn', 'ISBN must not be empty').trim().isLength({ min: 1 }).escape(),
+  body('genre.*').escape(),
+
+  (req, res, next) => {
+    const errors = validationResult(req);
+
+    var book = new Book({
+      title: req.body.title,
+      author: req.body.author,
+      summary: req.body.summary,
+      isbn: req.body.isbn,
+      genre: typeof req.body.genre === 'undefined' ? [] : req.body.genre,
+      _id: req.params.id, //So that new id is not generated.
+    });
+
+    if (!errors.isEmpty()) {
+      async.parallel(
+        {
+          authors: function (callback) {
+            Author.find({}).sort({ title: 1 }).exec(callback);
+          },
+          genres: function (callback) {
+            Genre.find({}).exec(callback);
+          },
+        },
+        function (err, results) {
+          if (err) {
+            return next(err);
+          }
+          for (let i = 0; i < results.genres.length; i++) {
+            if (book.genre.indexOf(results.genres[i]._id) > -1) {
+              results.genres[i].checked = 'true';
+            }
+          }
+          res.render('book_form', {
+            title: 'Update Book',
+            authors: results.authors,
+            genres: results.genres,
+            book: book,
+            errors: errors.array(),
+          });
+        }
+      );
+      return;
+    } else {
+      Book.findByIdAndUpdate(
+        req.params.id,
+        book,
+        {},
+        function (err, updateBook) {
+          if (err) {
+            return next(err);
+          }
+          res.redirect(updateBook.url);
+        }
+      );
+    }
+  },
+];
