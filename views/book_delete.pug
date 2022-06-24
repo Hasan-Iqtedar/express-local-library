@@ -2,7 +2,7 @@ extends layout
 
 block content 
 
-  h1 Book: #{book.title}
+  h1 #{title}: #{book.title}
   p= book.isbn
 
   if bookInstances.length 
