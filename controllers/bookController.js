@@ -213,8 +213,6 @@ exports.book_delete_get = function (req, res, next) {
 };
 
 exports.book_delete_post = function (req, res, next) {
-  // res.send('NOT IMPLEMENTED YET: Book Delete Post');
-
   Book.findByIdAndRemove(req.body.bookId, function (err) {
     if (err) {
       return next(err);

@@ -140,6 +140,11 @@ exports.bookInstance_update_get = function (req, res, next) {
       if (err) {
         return next(err);
       }
+      if (results.bookInstance == null) {
+        var error = new Error('BookInstance not found');
+        error.status = 404;
+        return next(error);
+      }
       res.render('bookInstance_form', {
         title: 'Update Book Instance',
         book_list: results.books,

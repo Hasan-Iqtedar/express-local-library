@@ -115,6 +115,11 @@ exports.genre_update_get = function (req, res, next) {
     if (err) {
       return next(err);
     }
+    if (result == null) {
+      var error = new Error('Genre not found');
+      error.status = 404;
+      return next(error);
+    }
     res.render('genre_form', { title: 'Update Genre', genre: result });
   });
 };
