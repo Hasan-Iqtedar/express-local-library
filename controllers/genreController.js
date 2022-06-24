@@ -77,11 +77,37 @@ exports.genre_create_post = [
 ];
 
 exports.genre_delete_get = function (req, res, next) {
-  res.send('NOT IMPLEMENTED YET: Genre Delete Get');
+  async.parallel(
+    {
+      genre: function (callback) {
+        Genre.findById(req.params.id).exec(callback);
+      },
+      genre_books: function (callback) {
+        Book.find({ genre: { $elemMatch: { $eq: req.params.id } } })
+          .sort({ title: 1 })
+          .exec(callback);
+      },
+    },
+    function (err, results) {
+      if (err) {
+        return next(err);
+      }
+      res.render('genre_delete', {
+        title: 'Delete Genre',
+        genre: results.genre,
+        genre_books: results.genre_books,
+      });
+    }
+  );
 };
 
 exports.genre_delete_post = function (req, res, next) {
-  res.send('NOT IMPLEMENTED YET: Genre Delete Post');
+  Genre.findByIdAndRemove(req.body.genreId, function (err) {
+    if (err) {
+      return next(err);
+    }
+    res.redirect('/catalog/genres');
+  });
 };
 
 exports.genre_update_get = function (req, res, next) {
