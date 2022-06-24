@@ -48,4 +48,13 @@ AuthorSchema.virtual('date_of_death_formatted').get(function () {
     : '';
 });
 
+AuthorSchema.virtual('input_date_of_birth').get(function () {
+  return this.date_of_birth.toISOString().split('T')[0];
+});
+
+AuthorSchema.virtual('input_date_of_death').get(function () {
+  return this.date_of_death.toISOString().split('T')[0];
+});
+
+
 module.exports = mongoose.model('Author', AuthorSchema);
