@@ -187,11 +187,40 @@ exports.book_create_post = [
 ];
 
 exports.book_delete_get = function (req, res, next) {
-  res.send('NOT IMPLEMENTED YET: Book Delete Get');
+  async.parallel(
+    {
+      book: function (callback) {
+        Book.findById(req.params.id).exec(callback);
+      },
+      bookInstances: function (callback) {
+        BookInstance.find({ book: req.params.id }).exec(callback);
+      },
+    },
+    function (err, results) {
+      if (err) {
+        return next(err);
+      }
+      if (results.book == null) {
+        res.redirect('/catalog/books');
+      }
+      res.render('book_delete', {
+        title: 'Delete Book',
+        book: results.book,
+        bookInstances: results.bookInstances,
+      });
+    }
+  );
 };
 
 exports.book_delete_post = function (req, res, next) {
-  res.send('NOT IMPLEMENTED YET: Book Delete Post');
+  // res.send('NOT IMPLEMENTED YET: Book Delete Post');
+
+  Book.findByIdAndRemove(req.body.bookId, function (err) {
+    if (err) {
+      return next(err);
+    }
+    res.redirect('/catalog/books');
+  });
 };
 
 exports.book_update_get = function (req, res, next) {
@@ -219,16 +248,8 @@ exports.book_update_get = function (req, res, next) {
         error.status = 404;
         return next(error);
       }
-      for (
-        var i = 0;
-        i < results.genres.length;
-        i++
-      ) {
-        for (
-          var j = 0;
-          j < results.book.genre.length;
-          j++
-        ) {
+      for (var i = 0; i < results.genres.length; i++) {
+        for (var j = 0; j < results.book.genre.length; j++) {
           if (
             results.genres[i]._id.toString() ===
             results.book.genre[j]._id.toString()
