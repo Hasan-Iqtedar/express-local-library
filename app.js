@@ -13,10 +13,7 @@ var helmet = require('helmet');
 
 var app = express();
 
-var dev_db_url =
-  'mongodb+srv://admin:1177@cluster0.4kgzavu.mongodb.net/?retryWrites=true&w=majority';
-
-var mongoDB = process.env.MONGODB_URI || dev_db_url;
+var mongoDB = process.env.MONGODB_URI;
 mongoose.connect(mongoDB, { useNewUrlParser: true, useUnifiedTopology: true });
 
 var db = mongoose.connection;
